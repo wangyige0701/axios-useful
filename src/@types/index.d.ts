@@ -12,7 +12,7 @@ export type InterceptRequestConfig = InternalAxiosRequestConfig<any> & CustomCon
 
 export type InterceptResponseConfig = { config: InterceptRequestConfig };
 
-export type AbortPromise<T = any> = Promise<T> & {
+export type RequestPromise<T = any> = Promise<T> & {
 	/**
 	 * Abort the request.
 	 */

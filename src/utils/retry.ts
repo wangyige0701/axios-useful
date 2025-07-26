@@ -92,14 +92,15 @@ function parseErrorReasons(reasons: string | string[]) {
 	};
 }
 
-export function requestWithRetry<T extends Promise<any>>(
-	fn: Fn<[config: RequestConfig], T>,
+export function requestWithRetry<P extends any[], T extends Promise<any>>(
+	fn: Fn<[...P, config: RequestConfig], T>,
+	rests: P,
 	config: RequestConfigWithAbort,
 	domains: string[] | undefined,
 ): T {
 	const retryConfig = config.retry;
 	if (!retryConfig) {
-		return fn(config);
+		return fn(...rests, config);
 	}
 	const _config = isBoolean(retryConfig) ? {} : retryConfig;
 	const {
@@ -143,7 +144,7 @@ export function requestWithRetry<T extends Promise<any>>(
 				};
 			}
 		}
-		return fn(requestConfig).catch(err => {
+		return fn(...rests, requestConfig).catch(err => {
 			// 请求取消或超出最大请求次数直接抛出
 			if (axios.isCancel(err) || n >= retryCount) {
 				return Promise.reject(err) as T;

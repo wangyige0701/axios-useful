@@ -1,6 +1,6 @@
 import type { Axios } from 'axios';
 import { type Fn, createPromise, upperCase, ParallelTask, isBoolean, isUndef } from '@wang-yige/utils';
-import type { AbortPromise, RequestConfig, RequestConfigWithAbort } from '@/@types';
+import type { RequestPromise, RequestConfig, RequestConfigWithAbort } from '@/@types';
 import type { APIRequest } from '..';
 import { Methods, SingleType } from './enum';
 import { createAbortController } from './abort';
@@ -15,9 +15,9 @@ const replaceSuffixSlash = /^(.*[^\/])\/*$/;
 export class SingleController {
 	#axios: Axios;
 	#pipeline: ParallelTask;
-	#singleTasks: Map<string, ParallelTask> = new Map();
-	#singleNext: Map<string, Fn> = new Map();
-	#singlePrev: Set<string> = new Set();
+	#singleTasks: Map<string, ParallelTask> | undefined;
+	#singleNext: Map<string, Fn> | undefined;
+	#singlePrev: Set<string> | undefined;
 	#API: APIRequest;
 
 	constructor(axios: Axios, pipeline: ParallelTask, _this: APIRequest) {
@@ -26,23 +26,31 @@ export class SingleController {
 		this.#API = _this;
 	}
 
-	request<R>(fn: Fn<[config: RequestConfig], Promise<any>>, url: string, config: RequestConfigWithAbort) {
+	request<R, P extends any[]>(
+		fn: Fn<[...P, config: RequestConfig], Promise<any>>,
+		rests: P,
+		url: string,
+		config: RequestConfigWithAbort,
+	) {
 		const singleConfig = config.single;
 		if (singleConfig || isUndef(singleConfig)) {
 			// default is true, enter when singleConfig is undefined
 			const { type = SingleType.QUEUE } = isBoolean(singleConfig) || isUndef(singleConfig) ? {} : singleConfig;
 			const KEY = this.#singleKey(url, config);
 			if (type === SingleType.QUEUE) {
-				const { promise, resolve, reject } = createPromise<R, AbortPromise<R>>();
+				const { promise, resolve, reject } = createPromise<R, RequestPromise<R>>();
+				if (!this.#singleTasks) {
+					this.#singleTasks = new Map();
+				}
 				if (!this.#singleTasks.has(KEY)) {
 					this.#singleTasks.set(KEY, new ParallelTask(1));
 					this.#singleTasks.get(KEY)!.onEmpty(() => {
-						this.#singleTasks.delete(KEY);
+						this.#singleTasks!.delete(KEY);
 					});
 				}
 				const tasks = this.#singleTasks.get(KEY)!;
 				const task = async () => {
-					await this.#send<R>(fn, config).then(resolve, reject);
+					await this.#send<R, P>(fn, rests, config).then(resolve, reject);
 				};
 				const useTask = tasks.add(task);
 				promise.abort = promise.cancel = () => {
@@ -54,30 +62,36 @@ export class SingleController {
 				return promise;
 			}
 			if (type === SingleType.NEXT) {
+				if (!this.#singleNext) {
+					this.#singleNext = new Map();
+				}
 				if (this.#singleNext.has(KEY)) {
 					this.#singleNext.get(KEY)?.();
 				}
-				const promise = this.#send<R>(fn, config);
+				const promise = this.#send<R, P>(fn, rests, config);
 				this.#singleNext.set(KEY, promise.abort);
 				promise.finally(() => {
-					this.#singleNext.delete(KEY);
+					this.#singleNext!.delete(KEY);
 				});
 				return promise;
 			}
 			if (type === SingleType.PREV) {
+				if (!this.#singlePrev) {
+					this.#singlePrev = new Set();
+				}
 				if (this.#singlePrev.has(KEY)) {
 					throw new Error('The previous request has not been completed');
 				}
 				this.#singlePrev.add(KEY);
-				const promise = this.#send<R>(fn, config);
+				const promise = this.#send<R, P>(fn, rests, config);
 				promise.finally(() => {
-					this.#singlePrev.delete(KEY);
+					this.#singlePrev!.delete(KEY);
 				});
 				return promise;
 			}
 			throw new Error('Unknown single type');
 		}
-		return this.#send<R>(fn, config);
+		return this.#send<R, P>(fn, rests, config);
 	}
 
 	#singleKey(url: string, config: RequestConfig) {
@@ -87,14 +101,18 @@ export class SingleController {
 		return `//${upperCase(method)}::${baseURL}/${path}`;
 	}
 
-	#send<R>(fn: Fn<[config: RequestConfig], Promise<any>>, config: RequestConfigWithAbort = {}) {
+	#send<R, P extends any[]>(
+		fn: Fn<[...P, config: RequestConfig], Promise<any>>,
+		rests: P,
+		config: RequestConfigWithAbort = {},
+	) {
 		const abort = createAbortController(config);
 		config.__abort = abort;
 		// 添加并行管道执行项
 		const promise = this.#pipeline.add(async config => {
 			// 执行重试机制
-			return await requestWithRetry(fn, config, this.#API.domains);
-		}, config) as unknown as AbortPromise<R>;
+			return await requestWithRetry(fn, rests, config, this.#API.domains);
+		}, config) as unknown as RequestPromise<R>;
 		// 移除 index 属性
 		delete (promise as Promise<void> & { index?: number }).index;
 		const _cancelTask = promise.cancel;
