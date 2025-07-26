@@ -1,28 +1,13 @@
 import type { Axios } from 'axios';
-import { type Fn, createPromise, upperCase, ParallelTask } from '@wang-yige/utils';
-import type { AbortPromise, RequestConfig, RequestConfigWithAbort } from '@/config';
+import { type Fn, createPromise, upperCase, ParallelTask, isBoolean, isUndef } from '@wang-yige/utils';
+import type { AbortPromise, RequestConfig, RequestConfigWithAbort } from '@/@types';
 import type { APIRequest } from '..';
-import { Methods } from './methods';
+import { Methods, SingleType } from './enum';
 import { createAbortController } from './abort';
-import { handleRetry } from './retry';
+import { requestWithRetry } from './retry';
 
-export enum SingleType {
-	/**
-	 * Always use the next request,
-	 * and if the prev request is not finished, it will be aborted.
-	 */
-	NEXT = 'next',
-	/**
-	 * Always use the prev request,
-	 * and if current request is not finished, the latest request will be aborted.
-	 */
-	PREV = 'prev',
-	/**
-	 * If the prev request is not finished, the latest request will be added to the queue.
-	 * - Default value
-	 */
-	QUEUE = 'queue',
-}
+const replacePrefixSlash = /^\/*([^\/].*)$/;
+const replaceSuffixSlash = /^(.*[^\/])\/*$/;
 
 /**
  * In SingleController also handle pipeline and retry config.
@@ -42,10 +27,12 @@ export class SingleController {
 	}
 
 	request<R>(fn: Fn<[config: RequestConfig], Promise<any>>, url: string, config: RequestConfigWithAbort) {
-		const { single = true, singleType = SingleType.QUEUE } = config;
-		if (single !== false) {
+		const singleConfig = config.single;
+		if (singleConfig || isUndef(singleConfig)) {
+			// default is true, enter when singleConfig is undefined
+			const { type = SingleType.QUEUE } = isBoolean(singleConfig) || isUndef(singleConfig) ? {} : singleConfig;
 			const KEY = this.#singleKey(url, config);
-			if (singleType === SingleType.QUEUE) {
+			if (type === SingleType.QUEUE) {
 				const { promise, resolve, reject } = createPromise<R, AbortPromise<R>>();
 				if (!this.#singleTasks.has(KEY)) {
 					this.#singleTasks.set(KEY, new ParallelTask(1));
@@ -66,7 +53,7 @@ export class SingleController {
 				};
 				return promise;
 			}
-			if (singleType === SingleType.NEXT) {
+			if (type === SingleType.NEXT) {
 				if (this.#singleNext.has(KEY)) {
 					this.#singleNext.get(KEY)?.();
 				}
@@ -77,7 +64,7 @@ export class SingleController {
 				});
 				return promise;
 			}
-			if (singleType === SingleType.PREV) {
+			if (type === SingleType.PREV) {
 				if (this.#singlePrev.has(KEY)) {
 					throw new Error('The previous request has not been completed');
 				}
@@ -88,30 +75,27 @@ export class SingleController {
 				});
 				return promise;
 			}
+			throw new Error('Unknown single type');
 		}
 		return this.#send<R>(fn, config);
 	}
 
-	static replacePrefixSlash = /^\/*([^\/].*)$/;
-
-	static replaceSuffixSlash = /^(.*[^\/])\/*$/;
-
 	#singleKey(url: string, config: RequestConfig) {
 		const { method = Methods.GET } = config;
-		const baseURL = (this.#axios.defaults.baseURL || '').replace(SingleController.replaceSuffixSlash, '$1');
-		const path = (url || '').replace(SingleController.replacePrefixSlash, '$1');
+		const baseURL = (this.#axios.defaults.baseURL || '').replace(replaceSuffixSlash, '$1');
+		const path = (url || '').replace(replacePrefixSlash, '$1');
 		return `//${upperCase(method)}::${baseURL}/${path}`;
 	}
 
 	#send<R>(fn: Fn<[config: RequestConfig], Promise<any>>, config: RequestConfigWithAbort = {}) {
 		const abort = createAbortController(config);
 		config.__abort = abort;
-		// Add to parallel pipeline.
+		// 添加并行管道执行项
 		const promise = this.#pipeline.add(async config => {
-			// Handle retry config.
-			return await handleRetry(fn, config, this.#API.domains);
+			// 执行重试机制
+			return await requestWithRetry(fn, config, this.#API.domains);
 		}, config) as unknown as AbortPromise<R>;
-		// remove the index property from ParallelPromise.
+		// 移除 index 属性
 		delete (promise as Promise<void> & { index?: number }).index;
 		const _cancelTask = promise.cancel;
 		promise.abort = promise.cancel = () => {

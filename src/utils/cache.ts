@@ -1,9 +1,9 @@
 import type { InternalAxiosRequestConfig, AxiosResponse, Axios } from 'axios';
-import { isNumber, upperCase } from '@wang-yige/utils';
-import type { InterceptRequestConfig, InterceptResponseConfig } from '@/config';
-import { Methods } from './methods';
+import { isBoolean, isNumber, upperCase } from '@wang-yige/utils';
+import type { InterceptRequestConfig, InterceptResponseConfig } from '@/@types';
+import { Methods } from './enum';
 
-export class ResponseCache {
+class ResponseCache {
 	response: AxiosResponse<any, any>;
 
 	constructor(cache: AxiosResponse<any, any>) {
@@ -12,6 +12,10 @@ export class ResponseCache {
 }
 
 export class CacheController {
+	static isResponseCache(cache: any): cache is ResponseCache {
+		return cache instanceof ResponseCache;
+	}
+
 	#axios: Axios;
 	#cacheKeys: WeakMap<InternalAxiosRequestConfig, string> = new WeakMap();
 	#cache: Map<string, { response: AxiosResponse; timestamp: number }> = new Map();
@@ -21,14 +25,19 @@ export class CacheController {
 	}
 
 	request(config: InterceptRequestConfig) {
-		const { cache = false, cacheTime } = config;
-		if (cache !== true) {
+		const cacheConfig = config.cache;
+		if (!cacheConfig) {
+			// undefined or false
+			return;
+		}
+		const { time } = isBoolean(cacheConfig) ? { time: -1 } : cacheConfig;
+		if (!isNumber(time) || time === 0) {
 			return;
 		}
 		const cacheValue = this.#getCache(config);
 		if (cacheValue) {
 			const { response, timestamp } = cacheValue;
-			if (isNumber(cacheTime) && cacheTime > 0 && Date.now() - timestamp > cacheTime) {
+			if (isNumber(time) && time > 0 && Date.now() - timestamp > time) {
 				this.#deleteCache(config);
 			} else {
 				throw new ResponseCache(response);
@@ -38,7 +47,11 @@ export class CacheController {
 
 	response(config: InterceptResponseConfig['config'], response: AxiosResponse & InterceptResponseConfig) {
 		const { cache = false } = config;
-		if (cache === true && !this.#hasCache(config)) {
+		if (cache && !this.#hasCache(config)) {
+			const { time } = isBoolean(cache) ? { time: -1 } : cache;
+			if (!isNumber(time) || time === 0) {
+				return;
+			}
 			this.#setCache(config, response);
 		}
 	}
@@ -50,7 +63,7 @@ export class CacheController {
 		const { method = Methods.GET } = config;
 		const methodUpper = upperCase(method);
 		if (methodUpper !== Methods.GET.toUpperCase()) {
-			throw new Error('cache only supported for the GET method');
+			throw new Error('Cache only supported for the `GET` method');
 		}
 		const key = `//${methodUpper}::${this.#axios.getUri(config)}`;
 		this.#cacheKeys.set(config, key);
