@@ -1,4 +1,4 @@
-import { APIRequest } from '../../index';
+import { APIRequest } from '../../../index';
 
 declare global {
 	var $API: {
