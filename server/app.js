@@ -1,10 +1,16 @@
 import koa from 'koa';
 import Router from 'koa-router';
+import bodyParser from 'koa-bodyparser';
 import { createHash } from 'crypto';
 import { delay } from '@wang-yige/utils';
+import { bindMethods } from './methods.js';
 
 const app = new koa();
 const router = new Router();
+
+app.use(bodyParser());
+
+bindMethods(router);
 
 let cache = 0;
 
