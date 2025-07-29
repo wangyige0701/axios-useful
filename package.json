@@ -37,7 +37,7 @@
 	},
 	"dependencies": {
 		"@wang-yige/utils": "^0.0.18",
-		"axios": "^1.7.7"
+		"axios": "^1.11.0"
 	},
 	"devDependencies": {
 		"@rollup/plugin-commonjs": "^28.0.1",

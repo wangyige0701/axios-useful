@@ -18,9 +18,9 @@ export class SingleController {
 	#singleTasks: Map<string, ParallelTask> | undefined;
 	#singleNext: Map<string, Fn> | undefined;
 	#singlePrev: Set<string> | undefined;
-	#API: APIRequest;
+	#API: InstanceType<typeof APIRequest>;
 
-	constructor(axios: Axios, pipeline: ParallelTask, _this: APIRequest) {
+	constructor(axios: Axios, pipeline: ParallelTask, _this: InstanceType<typeof APIRequest>) {
 		this.#axios = axios;
 		this.#pipeline = pipeline;
 		this.#API = _this;

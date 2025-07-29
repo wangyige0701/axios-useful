@@ -25,20 +25,23 @@ const defineConfig = {
 	configurable: false,
 };
 
-class APIRequestInstance {
+class AxiosRequestInstance {
 	/** The data of single types */
 	static Single = SingleType;
 
-	static create(config?: InitialConfig & CreateAxiosDefaults): APIRequestInstance;
-	static create(baseURL?: string, config?: InitialConfig & Omit<CreateAxiosDefaults, 'baseURL'>): APIRequestInstance;
+	static create(config?: InitialConfig & CreateAxiosDefaults): AxiosRequestInstance;
+	static create(
+		baseURL?: string,
+		config?: InitialConfig & Omit<CreateAxiosDefaults, 'baseURL'>,
+	): AxiosRequestInstance;
 	static create(
 		baseURL?: string | (InitialConfig & CreateAxiosDefaults),
 		config?: InitialConfig & Omit<CreateAxiosDefaults, 'baseURL'>,
 	) {
 		if (isString(baseURL)) {
-			return new APIRequestInstance(baseURL, config);
+			return new AxiosRequestInstance(baseURL, config);
 		}
-		return new APIRequestInstance(baseURL);
+		return new AxiosRequestInstance(baseURL);
 	}
 
 	#domains?: string[] = void 0;
@@ -123,6 +126,7 @@ class APIRequestInstance {
 			},
 		);
 
+		// 代理 axios 实例的请求方法
 		noDataMethods.forEach(method => {
 			const _method = this.#axios[method].bind(this.#axios) as Fn<
 				[url: string, config: RequestConfig],
@@ -158,6 +162,20 @@ class APIRequestInstance {
 
 	get defaults() {
 		return this.#axios.defaults;
+	}
+
+	/**
+	 * Current axios instance, with don't have wrapper methods
+	 */
+	get axios() {
+		return this.#axios;
+	}
+
+	/**
+	 * Axios static object
+	 */
+	get Axios() {
+		return axios;
 	}
 
 	#interceptors: Axios['interceptors'] | undefined;
@@ -257,33 +275,27 @@ class APIRequestInstance {
 	patchForm<T = any, R = AxiosResponse<T>, D = any>(url: string, data?: D, config?: RequestConfig<D>): RequestPromise<R>
 }
 
-let defaultInstance: APIRequestInstance;
-noDataMethods.forEach(method => {
-	Object.defineProperty(APIRequestInstance, method, {
+let defaultInstance: AxiosRequestInstance;
+[...noDataMethods, ...withDataMethods].forEach(method => {
+	Object.defineProperty(AxiosRequestInstance, method, {
 		...defineConfig,
-		value: (url: string, config: RequestConfigWithAbort = {}) => {
+		value: (...args: any[]) => {
 			if (!defaultInstance) {
-				defaultInstance = new APIRequestInstance('');
+				defaultInstance = new AxiosRequestInstance('');
 			}
-			return defaultInstance[method](url, config);
-		},
-	});
-});
-withDataMethods.forEach(method => {
-	Object.defineProperty(APIRequestInstance, method, {
-		...defineConfig,
-		value: (url: string, data: any, config: RequestConfigWithAbort = {}) => {
-			if (!defaultInstance) {
-				defaultInstance = new APIRequestInstance('');
-			}
-			return defaultInstance[method](url, data, config);
+			// @ts-expect-error
+			return defaultInstance[method](...args);
 		},
 	});
 });
 
-type APIRequestStatic = typeof APIRequestInstance &
-	Pick<APIRequestInstance, (typeof noDataMethods)[number] | (typeof withDataMethods)[number]>;
+type AxiosRequestStatic = typeof AxiosRequestInstance &
+	Pick<AxiosRequestInstance, (typeof noDataMethods)[number] | (typeof withDataMethods)[number]>;
 
-const APIRequest: APIRequestStatic = APIRequestInstance as any;
+/** A wrapper of `Axios` */
+const AxiosRequest: AxiosRequestStatic = AxiosRequestInstance as any;
 
-export { APIRequest, axios };
+/** alias of `AxiosRequest` */
+const APIRequest = AxiosRequest;
+
+export { AxiosRequest, APIRequest, axios };
