@@ -44,26 +44,25 @@ class AxiosRequestInstance {
 		return new AxiosRequestInstance(baseURL);
 	}
 
-	#domains?: string[] = void 0;
-	#maximum: number = 5;
-
-	#axios: Axios;
-	#pipeline: ParallelTask;
-	#frequency: Fn<[number, string?], any> | undefined = void 0;
+	private _domains?: string[] = void 0;
+	private _maximum: number = 5;
+	private _axios: Axios;
+	private _pipeline: ParallelTask;
+	private _frequency: Fn<[number, string?], any> | undefined = void 0;
 
 	// 拦截器重置
-	#requestInterceptor: {
+	private requestInterceptor: {
 		onFulfilled: (
 			value: InternalAxiosRequestConfig<any>,
 		) => InternalAxiosRequestConfig<any> | Promise<InternalAxiosRequestConfig<any>>;
 		onRejected: (error: any) => any;
 	};
-	#requestInterceptorIndex: number;
-	#responseInterceptorIndex: number;
+	private requestInterceptorIndex: number;
+	private responseInterceptorIndex: number;
 
 	// 控制器实例
-	#cacheController: CacheController;
-	#singleController: SingleController;
+	private cacheController: CacheController;
+	private singleController: SingleController;
 
 	constructor(config?: InitialConfig & CreateAxiosDefaults);
 	constructor(baseURL?: string, config?: InitialConfig & Omit<CreateAxiosDefaults, 'baseURL'>);
@@ -76,11 +75,11 @@ class AxiosRequestInstance {
 			baseURL = baseURL?.baseURL;
 		}
 		const { maximum = 5, domains, requestLimit = 50 } = config || {};
-		this.#maximum = Math.max(1, +maximum || 5);
-		this.#pipeline = new ParallelTask(this.#maximum);
+		this._maximum = Math.max(1, +maximum || 5);
+		this._pipeline = new ParallelTask(this._maximum);
 		const _limit = +requestLimit || 0;
 		if (_limit > 0) {
-			this.#frequency = checkFrequency({ range: 1000, maximum: _limit }, (_, current, path) => {
+			this._frequency = checkFrequency({ range: 1000, maximum: _limit }, (_, current, path) => {
 				throw new Error(
 					`The request frequency is over the limit in one second. Current count is ${current} with path '${path}' \n` +
 						"It's maybe an infinite loop, and if you want to continue, you can set the `requestLimit` to a bigger number or zero.",
@@ -88,33 +87,33 @@ class AxiosRequestInstance {
 			});
 		}
 		if (domains) {
-			this.#domains = toArray(domains);
+			this._domains = toArray(domains);
 		}
 		const defaultConfig = { ...config };
 		delete defaultConfig.domains;
 		delete defaultConfig.maximum;
 
-		this.#axios = axios.create({ ...defaultConfig, baseURL });
-		this.#cacheController = new CacheController(this.#axios);
-		this.#singleController = new SingleController(this.#axios, this.#pipeline, this);
+		this._axios = axios.create({ ...defaultConfig, baseURL });
+		this.cacheController = new CacheController(this._axios);
+		this.singleController = new SingleController(this._axios, this._pipeline, this);
 
 		// 保证请求拦截器的执行顺序
-		this.#requestInterceptor = Object.freeze({
+		this.requestInterceptor = Object.freeze({
 			onFulfilled: (config: InterceptRequestConfig) => {
-				this.#cacheController.request(config);
+				this.cacheController.request(config);
 				return config;
 			},
 			onRejected: err => {
 				return Promise.reject(err);
 			},
 		});
-		this.#requestInterceptorIndex = this.#axios.interceptors.request.use(
-			this.#requestInterceptor.onFulfilled,
-			this.#requestInterceptor.onRejected,
+		this.requestInterceptorIndex = this._axios.interceptors.request.use(
+			this.requestInterceptor.onFulfilled,
+			this.requestInterceptor.onRejected,
 		);
-		this.#responseInterceptorIndex = this.#axios.interceptors.response.use(
+		this.responseInterceptorIndex = this._axios.interceptors.response.use(
 			(response: AxiosResponse<any, any> & InterceptResponseConfig) => {
-				this.#cacheController.response(response.config, response);
+				this.cacheController.response(response.config, response);
 				return response;
 			},
 			async err => {
@@ -128,26 +127,26 @@ class AxiosRequestInstance {
 
 		// 代理 axios 实例的请求方法
 		noDataMethods.forEach(method => {
-			const _method = this.#axios[method].bind(this.#axios) as Fn<
+			const _method = this._axios[method].bind(this._axios) as Fn<
 				[url: string, config: RequestConfig],
 				Promise<any>
 			>;
 			Object.defineProperty(this, method, {
 				...defineConfig,
 				value: <T = any, R = AxiosResponse<T>, D = any>(url: string, config?: RequestConfig<D>) => {
-					return this.#proxy<R, [string]>(_method, [url], url, config);
+					return this.proxy<R, [string]>(_method, [url], url, config);
 				},
 			});
 		});
 		withDataMethods.forEach(method => {
-			const _method = this.#axios[method].bind(this.#axios) as Fn<
+			const _method = this._axios[method].bind(this._axios) as Fn<
 				[url: string, data: any, config: RequestConfig],
 				Promise<any>
 			>;
 			Object.defineProperty(this, method, {
 				...defineConfig,
 				value: <T = any, R = AxiosResponse<T>, D = any>(url: string, data?: D, config?: RequestConfig<D>) => {
-					return this.#proxy<R, [string, D?]>(_method, [url, data], url, config);
+					return this.proxy<R, [string, D?]>(_method, [url, data], url, config);
 				},
 			});
 		});
@@ -157,18 +156,18 @@ class AxiosRequestInstance {
 	 * Registered domains
 	 */
 	get domains() {
-		return this.#domains;
+		return this._domains;
 	}
 
 	get defaults() {
-		return this.#axios.defaults;
+		return this._axios.defaults;
 	}
 
 	/**
 	 * Current axios instance, with don't have wrapper methods
 	 */
 	get axios() {
-		return this.#axios;
+		return this._axios;
 	}
 
 	/**
@@ -188,22 +187,22 @@ class AxiosRequestInstance {
 			return this.#interceptors;
 		}
 		this.#interceptors = Object.create(null);
-		const request = this.#axios.interceptors.request;
-		const response = this.#axios.interceptors.response;
+		const request = this._axios.interceptors.request;
+		const response = this._axios.interceptors.response;
 		Object.defineProperty(this.#interceptors, 'request', {
 			...defineConfig,
 			value: Object.freeze({
 				use: (...args) => {
-					request.eject(this.#requestInterceptorIndex);
+					request.eject(this.requestInterceptorIndex);
 					const index = request.use(...args);
-					this.#requestInterceptorIndex = request.use(
-						this.#requestInterceptor.onFulfilled,
-						this.#requestInterceptor.onRejected,
+					this.requestInterceptorIndex = request.use(
+						this.requestInterceptor.onFulfilled,
+						this.requestInterceptor.onRejected,
 					);
 					return index;
 				},
 				eject: (id: number) => {
-					if (id === this.#requestInterceptorIndex) {
+					if (id === this.requestInterceptorIndex) {
 						return;
 					}
 					return request.eject(id);
@@ -216,7 +215,7 @@ class AxiosRequestInstance {
 			value: Object.freeze({
 				use: (...args) => response.use(...args),
 				eject: (id: number) => {
-					if (id === this.#responseInterceptorIndex) {
+					if (id === this.responseInterceptorIndex) {
 						return;
 					}
 					return response.eject(id);
@@ -231,23 +230,23 @@ class AxiosRequestInstance {
 	 * Change the maximum number of parallel requests pipeline.
 	 */
 	maximum(maximum: number) {
-		this.#pipeline.changeMaxParallelCount(Math.max(1, +maximum || 5));
+		this._pipeline.changeMaxParallelCount(Math.max(1, +maximum || 5));
 	}
 
 	getUri(config?: RequestConfig) {
-		return this.#axios.getUri(config);
+		return this._axios.getUri(config);
 	}
 
 	// api methods
 
-	#proxy<R, P extends any[]>(
+	private proxy<R, P extends any[]>(
 		fn: Fn<[...P, config: RequestConfig], Promise<any>>,
 		rests: P,
 		url: string,
 		config: RequestConfigWithAbort = {},
 	) {
-		this.#frequency && this.#frequency(1, url);
-		return this.#singleController.request<R, P>(fn, rests, url, { ...config }) as RequestPromise<R>;
+		this._frequency && this._frequency(1, url);
+		return this.singleController.request<R, P>(fn, rests, url, { ...config }) as RequestPromise<R>;
 	}
 
 	// @ts-expect-error
