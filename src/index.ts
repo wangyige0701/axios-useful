@@ -1,4 +1,4 @@
-import { type Fn, checkFrequency, isString, ParallelTask } from '@wang-yige/utils';
+import { type Fn, checkFrequency, isNumber, isString, ParallelTask } from '@wang-yige/utils';
 import axios, {
 	type Axios,
 	type InternalAxiosRequestConfig,
@@ -73,20 +73,20 @@ class AxiosRequestInstance {
 			config = baseURL;
 			baseURL = baseURL?.baseURL;
 		}
-		const { maximum = 5, requestLimit = 50 } = config || {};
-		this._maximum = Math.max(1, +maximum || 5);
+		const { maximumInOneTime = 5, limitInOneSecond = 50 } = config || {};
+		this._maximum = isNumber(+maximumInOneTime) ? Math.max(1, +maximumInOneTime || 5) : 5;
 		this._pipeline = new ParallelTask(this._maximum);
-		const _limit = +requestLimit || 0;
-		if (_limit > 0) {
+		const _limit = +limitInOneSecond || 0;
+		if (isNumber(_limit) && _limit > 0) {
 			this._frequency = checkFrequency({ range: 1000, maximum: _limit }, (_, current, path) => {
 				throw new Error(
-					`The request frequency is over the limit in one second. Current count is ${current} with path '${path}' \n` +
-						"It's maybe an infinite loop, and if you want to continue, you can set the `requestLimit` to a bigger number or zero.",
+					`The request frequency is over the limit in one second. Current count is ${current} with path '${path}'. \n` +
+						"It's maybe an infinite loop, and if you want to continue, you can set the `limitInOneSecond` to a bigger number or zero.",
 				);
 			});
 		}
 		const defaultConfig = { ...config };
-		delete defaultConfig.maximum;
+		delete defaultConfig.maximumInOneTime;
 
 		this._axios = axios.create({ ...defaultConfig, baseURL });
 		this.cacheController = new CacheController(this._axios);

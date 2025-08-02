@@ -2,16 +2,16 @@ import type { SingleType } from '@/utils/enum';
 
 export interface InitialConfig {
 	/**
-	 * Max number to sync request.
+	 * The maximum number of requests sent at the same time.
 	 * - default `5`
 	 */
-	maximum?: number;
+	maximumInOneTime?: number;
 	/**
-	 * Max number to trigger request by current url in one second,
-	 * when pass in zero or negative, it will not check.
+	 * The limit number of requests sent in one second, if exceed, it will throw an axios CanceledError.
+	 * If pass in zero or negative, it will not have any restrictions set.
 	 * - default `50`
 	 */
-	requestLimit?: number;
+	limitInOneSecond?: number;
 }
 
 interface Single {
