@@ -1,4 +1,4 @@
-import { checkFrequency, Fn, isString, ParallelTask, toArray } from '@wang-yige/utils';
+import { type Fn, checkFrequency, isString, ParallelTask } from '@wang-yige/utils';
 import axios, {
 	type Axios,
 	type InternalAxiosRequestConfig,
@@ -165,19 +165,19 @@ class AxiosRequestInstance {
 		return axios;
 	}
 
-	#interceptors: Axios['interceptors'] | undefined;
+	private _interceptors: Axios['interceptors'] | undefined;
 
 	/**
 	 * Request interceptor
 	 */
 	get interceptors() {
-		if (this.#interceptors) {
-			return this.#interceptors;
+		if (this._interceptors) {
+			return this._interceptors;
 		}
-		this.#interceptors = Object.create(null);
+		this._interceptors = Object.create(null);
 		const request = this._axios.interceptors.request;
 		const response = this._axios.interceptors.response;
-		Object.defineProperty(this.#interceptors, 'request', {
+		Object.defineProperty(this._interceptors, 'request', {
 			...defineConfig,
 			value: Object.freeze({
 				use: (...args) => {
@@ -198,7 +198,7 @@ class AxiosRequestInstance {
 				clear: () => request.clear(),
 			} as AxiosInterceptorManager<InternalAxiosRequestConfig<any>>),
 		});
-		Object.defineProperty(this.#interceptors, 'response', {
+		Object.defineProperty(this._interceptors, 'response', {
 			...defineConfig,
 			value: Object.freeze({
 				use: (...args) => response.use(...args),
@@ -211,7 +211,7 @@ class AxiosRequestInstance {
 				clear: () => response.clear(),
 			} as AxiosInterceptorManager<AxiosResponse<any, any>>),
 		});
-		return this.#interceptors!;
+		return this._interceptors!;
 	}
 
 	/**
