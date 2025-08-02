@@ -2,11 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { AxiosRequest } from '@/index';
 
 // prettier-ignore
-describe('Request Methods', () => {
+describe('request methods', () => {
 	const delayTime = 10000;
 	const postData = { data: 'hello' };
 
-	describe('Instance Methods', () => {
+	describe('instance methods', () => {
 		const API = new AxiosRequest('http://localhost:3000');
 		API.interceptors.response.use(val => {
 			if (val.headers['x-method']) {
@@ -71,7 +71,7 @@ describe('Request Methods', () => {
 		}, delayTime);
 	});
 
-	describe('Static Methods', () => {
+	describe('static methods', () => {
 		const baseUrl = 'http://localhost:3000/api/method'
 		function response(resp: any) {
 			if (resp.headers['x-method']) {

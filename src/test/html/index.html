@@ -1,37 +1,37 @@
 <!DOCTYPE html>
 <html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Document</title>
+		<script src="../../../dist/request.min.js"></script>
+	</head>
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    <script src="../../dist/request.min.js"></script>
-</head>
+	<body>
+		<script type="module">
+			import { single } from './js/single.js';
 
-<body>
-    <script type="module">
-        import { single } from './js/single.js';
+			// single(10).then(res => {
+			//     console.log(res);
+			// });
+		</script>
+		<script type="module">
+			import { cache } from './js/cache.js';
 
-        // single(10).then(res => {
-        //     console.log(res);
-        // });
-    </script>
-    <script type="module">
-        import { cache } from './js/cache.js';
+			// cache(10).then(res => {
+			//     console.log(res);
+			// });
+		</script>
+		<script type="module">
+			import { error } from './js/error.js';
 
-        // cache(10).then(res => {
-        //     console.log(res);
-        // });
-    </script>
-    <script type="module">
-        import { error } from './js/error.js';
-
-        error().then(res => {
-            console.log(res);
-        }).catch(err => {
-            console.log(err);
-        });
-    </script>
-</body>
-
+			error()
+				.then(res => {
+					console.log(res);
+				})
+				.catch(err => {
+					console.log(err);
+				});
+		</script>
+	</body>
 </html>

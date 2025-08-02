@@ -1,8 +1,9 @@
-import Router from 'koa-router';
+/** @typedef {import('koa-router')<any, {}>} Router */
+
 import { koaBody } from 'koa-body';
 
 /**
- * @param {Router<any, {}>} router
+ * @param {Router} router
  */
 export function bindMethods(router) {
 	router.get('/api/method/get', ctx => {
