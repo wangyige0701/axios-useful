@@ -2,11 +2,6 @@ import type { SingleType } from '@/utils/enum';
 
 export interface InitialConfig {
 	/**
-	 * The domains that can be retried, if set it,
-	 * the retry count will be the max of the `domains`'s length and `retryCount`.
-	 */
-	domains?: string[];
-	/**
 	 * Max number to sync request.
 	 * - default `5`
 	 */
@@ -71,10 +66,9 @@ interface Retry {
 	 */
 	badRequestCodes?: RetryCodeRange;
 	/**
-	 * Whether use domains to retry.
-	 * - default `true`
+	 * The domains that can be retried.
 	 */
-	useDomains?: boolean;
+	domains?: string[];
 }
 
 export interface CustomConfig {

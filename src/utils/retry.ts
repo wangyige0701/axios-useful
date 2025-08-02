@@ -96,7 +96,6 @@ export function requestWithRetry<P extends any[], T extends Promise<any>>(
 	fn: Fn<[...P, config: RequestConfig], T>,
 	rests: P,
 	config: RequestConfigWithAbort,
-	domains: string[] | undefined,
 ): T {
 	const retryConfig = config.retry;
 	if (!retryConfig) {
@@ -107,7 +106,7 @@ export function requestWithRetry<P extends any[], T extends Promise<any>>(
 		errorReasons = DefaultRetryErrorCodes,
 		badResponseCodes = DefaultResponseCodes,
 		badRequestCodes = DefaultRequestCodes,
-		useDomains = true,
+		domains = void 0,
 	} = _config;
 	const isErrorReasons = parseErrorReasons(errorReasons);
 	let isBadResponseCodes: Fn<[number | string], boolean> | void;
@@ -124,7 +123,7 @@ export function requestWithRetry<P extends any[], T extends Promise<any>>(
 	let changeDomain = false;
 	let domainIndex = -1;
 	let domainList: string[];
-	if (useDomains && isArray(domains) && domains.length) {
+	if (isArray(domains) && domains.length) {
 		changeDomain = true;
 		domainList = [...(domains || [])];
 	}

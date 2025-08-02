@@ -44,7 +44,6 @@ class AxiosRequestInstance {
 		return new AxiosRequestInstance(baseURL);
 	}
 
-	private _domains?: string[] = void 0;
 	private _maximum: number = 5;
 	private _axios: Axios;
 	private _pipeline: ParallelTask;
@@ -74,7 +73,7 @@ class AxiosRequestInstance {
 			config = baseURL;
 			baseURL = baseURL?.baseURL;
 		}
-		const { maximum = 5, domains, requestLimit = 50 } = config || {};
+		const { maximum = 5, requestLimit = 50 } = config || {};
 		this._maximum = Math.max(1, +maximum || 5);
 		this._pipeline = new ParallelTask(this._maximum);
 		const _limit = +requestLimit || 0;
@@ -86,16 +85,12 @@ class AxiosRequestInstance {
 				);
 			});
 		}
-		if (domains) {
-			this._domains = toArray(domains);
-		}
 		const defaultConfig = { ...config };
-		delete defaultConfig.domains;
 		delete defaultConfig.maximum;
 
 		this._axios = axios.create({ ...defaultConfig, baseURL });
 		this.cacheController = new CacheController(this._axios);
-		this.singleController = new SingleController(this._axios, this._pipeline, this);
+		this.singleController = new SingleController(this._axios, this._pipeline);
 
 		// 保证请求拦截器的执行顺序
 		this.requestInterceptor = Object.freeze({
@@ -150,13 +145,6 @@ class AxiosRequestInstance {
 				},
 			});
 		});
-	}
-
-	/**
-	 * Registered domains
-	 */
-	get domains() {
-		return this._domains;
 	}
 
 	get defaults() {
