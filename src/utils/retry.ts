@@ -8,6 +8,7 @@ import {
 	isGeneralObject,
 	isNumber,
 	isString,
+	isUndef,
 	toArray,
 } from '@wang-yige/utils';
 import type { CodeRange, RequestConfig, RequestConfigWithAbort, RetryCodeRange } from '@/@types';
@@ -25,6 +26,10 @@ function checkRetryCodeRange(range: any) {
 		isNumber((range as any).from) &&
 		isNumber((range as any).to)
 	);
+}
+
+function trimString(s: string) {
+	return s.trim();
 }
 
 /**
@@ -48,7 +53,14 @@ export function parseCodeRange(range: RetryCodeRange) {
 	} else if (isString(range)) {
 		ranges.push(
 			...range.split(',').reduce((prev, curr) => {
-				let [from, to] = curr.split('-').map(Number);
+				const arr = curr.split('-').map(trimString).map(Number).slice(0, 2);
+				if (isNaN(arr[0])) {
+					return prev;
+				}
+				if (isUndef(arr[1]) || isNaN(arr[1])) {
+					arr[1] = arr[0];
+				}
+				let [from, to] = arr;
 				if (from > to) {
 					[from, to] = [to, from];
 				}

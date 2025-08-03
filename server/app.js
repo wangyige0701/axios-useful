@@ -5,6 +5,7 @@ import { bindMethods } from './methods.js';
 import { bindCache } from './cache.js';
 import { bindSingle } from './single.js';
 import { delay } from '@wang-yige/utils';
+import { bindRetry } from './retry.js';
 
 const app = new koa();
 const router = new Router();
@@ -16,6 +17,8 @@ bindMethods(router);
 bindCache(router);
 
 bindSingle(router);
+
+bindRetry(router);
 
 router.get('/index', ctx => {
 	console.log('/index');
