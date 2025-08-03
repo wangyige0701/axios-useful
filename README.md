@@ -1,16 +1,16 @@
-## @wang-yige/request
+## axios-useful
 
-A warpper for axios, add some useful features like retry, cache, etc.
+Expand for axios, add some useful features like retry, cache, etc.
 
 ### Usage
 
 ```typescript
-import { APIRequest } from '@wang-yige/request';
+import { AxiosRequest } from 'axios-useful';
 
-const Root = new APIRequest('https://jsonplaceholder.typicode.com');
+const API = new AxiosRequest('https://example.com');
 
 const api = (i: number) => {
-	return Root.get('/todos/' + i);
+	return API.get('/todos/' + i);
 };
 
 api(0); // result promise with abort method, and it alias for cancel method.
@@ -19,89 +19,109 @@ api(0); // result promise with abort method, and it alias for cancel method.
 ### Config
 
 ```typescript
-const Root = new APIRequest('/', {
-    /**
-	 * Then User-Agent header config, default is void.
-	 * Used in node environment.
-	 */
-	userAgent?: string,
+const API = new AxiosRequest('/', {
 	/**
-	 * The domains that can be retried, if set it,
-	 * the retry count will be the max of the `domains`'s length and `retryCount`.
-	 */
-	domains?: string[],
-	/**
-	 * Max number to sync request.
+	 * The maximum number of requests sent at the same time.
 	 * - default `5`
 	 */
-	maximum?: number,
+	maximumInOneTime: number,
 	/**
-	 * Max number to trigger request by current url in a second,
-	 * if it is zero or negative, it will not check.
+	 * The limit number of requests sent in one second, if exceed, it will throw an axios CanceledError.
+	 * If pass in zero or negative, it will not have any restrictions set.
 	 * - default `50`
 	 */
-	triggerLimit?: number,
+	limitInOneSecond: number,
 });
+```
 
-Root.get('/todos/0', {
+### Feature
+
+#### Cache
+
+-   only support GET method
+
+```typescript
+API.get('/todos/0', {
+    /**
+	 * Cache the `Get` request response.
+	 * - default `false`
+	 */
+	cache?: boolean | {
+		/**
+		 * Cache time in miliseconds.
+		 * If time is zero, it will not be cached.
+		 * If time is negative, it will not clear cache.
+		 * - default `-1`
+		 */
+		time?: number;
+	};
+});
+```
+
+#### Retry
+
+```typescript
+type CodeRange = { from: number; to: number };
+
+type RetryCodeRange = number | number[] | CodeRange | Array<CodeRange> | string;
+
+API.get('/todos/0', {
+	/**
+	 * Retry the request if failed.
+	 * - default `false`
+	 */
+    retry: boolean | {
+		/**
+	 * Retry count.
+	 * - default `5`
+	 */
+	count?: number;
+	/**
+	 * Delay time for retry in miliseconds.
+	 * - default `1000`
+	 */
+	delay?: number;
+	/**
+	 * The axios error reasons to retry.
+	 * - default `['ECONNABORTED', 'ERR_NETWORK, 'ETIMEDOUT', 'ECONNREFUSED']`
+	 * `'ECONNREFUSED'` is only available in nodejs.
+	 */
+	errorReasons?: string | string[];
+	/**
+	 * If `retry.errorReasons` not include `ERR_BAD_RESPONSE`,
+	 * this config will be matched when response `err.code` equals `ERR_BAD_RESPONSE`.
+	 * - default codes are `500`, `404`, `502`
+	 */
+	badResponseCodes?: RetryCodeRange;
+	/**
+	 * If `retry.` not include `ERR_BAD_REQUEST`,
+	 * this config will be matched when response `err.code` equals `ERR_BAD_REQUEST`.
+	 * - default code is `404`
+	 */
+	badRequestCodes?: RetryCodeRange;
+	/**
+	 * The domains that can be retried.
+	 */
+	domains?: string[];
+	}
+});
+```
+
+#### Single
+
+```typescript
+API.get('/todos/0', {
     /**
 	 * The same url request is only single at a time.
 	 * Not include the params.
 	 * - default `true`
 	 */
-	single?: boolean,
-	/**
-	 * The type for single request.
-	 * - default is `SingleType.QUEUE`
-	 */
-	singleType?: SingleType,
-	/**
-	 * Cache the Get request response.
-	 * - default `false`
-	 */
-	cache?: boolean,
-	/**
-	 * Cache time in miliseconds.
-	 * If time is negative or zero, it will not be cached.
-	 */
-	cacheTime?: number,
-	/**
-	 * Retry the request if failed.
-	 * - default `false`
-	 */
-	retry?: boolean,
-	/**
-	 * Retry count.
-	 * - default `5`
-	 */
-	retryCount?: number,
-	/**
-	 * Delay time for retry in miliseconds.
-	 * - default `1000`
-	 */
-	retryDelay?: number,
-	/**
-	 * The axios error codes to retry.
-	 * - default `['ECONNABORTED', 'ERR_NETWORK, 'ETIMEDOUT', 'ECONNREFUSED']`
-	 * `'ECONNREFUSED'` is only available in nodejs.
-	 */
-	retryErrorCode?: string | string[],
-	/**
-	 * If `retryErrorCode` not include `ERR_BAD_RESPONSE`,
-	 * this config will be matched when response `err.code` equals `'ERR_BAD_RESPONSE'`.
-	 * - default codes are `500`, `404`, `502`
-	 */
-	retryResponseCode?: number | number[],
-	/**
-	 * If `retryErrorCode` not include `ERR_BAD_REQUEST`,
-	 * this config will be matched when response `err.code` equals `'ERR_BAD_REQUEST'`.
-	 * - default code is `404`
-	 */
-	retryRequestCode?: number | number[],
-	/**
-	 * Whether use domains to retry.
-	 * - default `true`
-	 */
-	useDomains?: boolean,
+	single?: boolean | {
+		/**
+		 * The type for single request.
+		 * - default is `SingleType.QUEUE`
+		 */
+		type?: SingleType;
+	},
 });
 ```

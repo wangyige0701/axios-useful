@@ -1,7 +1,7 @@
 {
-	"name": "@wang-yige/request",
-	"version": "0.0.2",
-	"description": "A warpper for axios, add some useful features like retry, cache, etc.",
+	"name": "axios-useful",
+	"version": "0.0.1",
+	"description": "Some expand functions for axios, like retry, cache, etc.",
 	"type": "module",
 	"main": "dist/index.cjs",
 	"module": "dist/index.mjs",
@@ -19,14 +19,15 @@
 	"keywords": [
 		"axios",
 		"request",
+		"node",
 		"JavaScript",
 		"TypeScript"
 	],
 	"author": "Yige Wang <wyg1776686515@gmail.com>",
-	"homepage": "https://github.com/wangyige0701/request#readme",
+	"homepage": "https://github.com/wangyige0701/axios-useful#readme",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/wangyige0701/request.git"
+		"url": "git+https://github.com/wangyige0701/axios-useful.git"
 	},
 	"license": "MIT",
 	"scripts": {
