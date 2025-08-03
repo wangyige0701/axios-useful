@@ -1,10 +1,11 @@
 import { type Fn, checkFrequency, isNumber, isString, ParallelTask } from '@wang-yige/utils';
-import axios, {
-	type Axios,
-	type InternalAxiosRequestConfig,
-	type AxiosResponse,
-	type AxiosInterceptorManager,
-	type CreateAxiosDefaults,
+import axiosStatic from 'axios';
+import type {
+	Axios,
+	InternalAxiosRequestConfig,
+	AxiosResponse,
+	AxiosInterceptorManager,
+	CreateAxiosDefaults,
 } from 'axios';
 import type {
 	RequestConfig,
@@ -88,7 +89,7 @@ class AxiosRequestInstance {
 		const defaultConfig = { ...config };
 		delete defaultConfig.maximumInOneTime;
 
-		this._axios = axios.create({ ...defaultConfig, baseURL });
+		this._axios = axiosStatic.create({ ...defaultConfig, baseURL });
 		this.cacheController = new CacheController(this._axios);
 		this.singleController = new SingleController(this._axios, this._pipeline);
 
@@ -162,7 +163,7 @@ class AxiosRequestInstance {
 	 * Axios static object
 	 */
 	get Axios() {
-		return axios;
+		return axiosStatic;
 	}
 
 	private _interceptors: Axios['interceptors'] | undefined;
@@ -284,5 +285,8 @@ const AxiosRequest: AxiosRequestStatic = AxiosRequestInstance as any;
 
 /** alias of `AxiosRequest` */
 const APIRequest = AxiosRequest;
+
+/** The origin axios static object */
+const axios = axiosStatic;
 
 export { AxiosRequest, APIRequest, axios };

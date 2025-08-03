@@ -78,8 +78,8 @@ export default [
 		const config = {
 			input,
 			output: {
-				name: '$API',
-				file: 'dist/request.min.js',
+				name: 'AxiosUeseful',
+				file: 'dist/axios-useful.min.js',
 				format: 'iife',
 			},
 			external: ['util', 'stream', 'path', 'http', 'https', 'url', 'fs', 'assert', 'tty', 'zlib', 'events'],
