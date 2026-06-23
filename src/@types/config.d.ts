@@ -71,7 +71,7 @@ interface Retry {
 	domains?: string[];
 }
 
-export interface CustomConfig {
+export interface ExtraConfig {
 	/**
 	 * The same url request is only single at a time.
 	 * Not include the params.
