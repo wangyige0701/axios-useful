@@ -1,4 +1,5 @@
 import type { SingleType } from '@/utils/enum';
+import type { AxiosResponse } from 'axios';
 
 export interface InitialConfig {
 	/**
@@ -30,6 +31,12 @@ interface Cache {
 	 * - default `-1`
 	 */
 	time?: number;
+	/**
+	 * Validate the response if it is cached.
+	 * @param response The response to validate.
+	 * @returns If the response is cached.
+	 */
+	validate?: (response: AxiosResponse) => boolean;
 }
 
 export type CodeRange = { from: number; to: number };

@@ -1,5 +1,5 @@
 import type { InternalAxiosRequestConfig, AxiosResponse, Axios } from 'axios';
-import { isBoolean, isNumber, upperCase } from '@wang-yige/utils';
+import { isBoolean, isFunction, isNumber, isObject, upperCase } from '@wang-yige/utils';
 import type { InterceptRequestConfig, InterceptResponseConfig } from '@/@types';
 import { Methods } from './enum';
 
@@ -51,6 +51,9 @@ export class CacheController {
 	public response(config: InterceptResponseConfig['config'], response: AxiosResponse & InterceptResponseConfig) {
 		const { cache = false } = config;
 		if (!cache) {
+			return;
+		}
+		if (isObject(cache) && isFunction(cache.validate) && !cache.validate(response)) {
 			return;
 		}
 		if (!this.cache) {
