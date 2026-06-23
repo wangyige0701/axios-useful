@@ -14,6 +14,7 @@ import type {
 	RequestConfigWithAbort,
 	RequestPromise,
 	InitialConfig,
+	ExtraConfig,
 } from '@/@types';
 import { CacheController } from './utils/cache';
 import { SingleController } from './utils/single';
@@ -289,4 +290,4 @@ const APIRequest = AxiosRequest;
 /** The origin axios static object */
 const axios = axiosStatic;
 
-export { AxiosRequest, APIRequest, axios };
+export { AxiosRequest, APIRequest, axios, type ExtraConfig };
