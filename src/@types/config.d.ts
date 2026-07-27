@@ -1,5 +1,6 @@
 import type { SingleType } from '@/utils/enum';
 import type { AxiosResponse } from 'axios';
+import { InterceptRequestConfig } from '.';
 
 export interface InitialConfig {
 	/**
@@ -15,7 +16,7 @@ export interface InitialConfig {
 	limitInOneSecond?: number;
 }
 
-interface Single {
+export interface Single {
 	/**
 	 * The type for single request.
 	 * - default is `SingleType.QUEUE`
@@ -23,7 +24,7 @@ interface Single {
 	type?: SingleType;
 }
 
-interface Cache {
+export interface Cache {
 	/**
 	 * Cache time in miliseconds.
 	 * If time is zero, it will not be cached.
@@ -37,13 +38,20 @@ interface Cache {
 	 * @returns If the response is cached.
 	 */
 	validate?: (response: AxiosResponse) => boolean;
+	/**
+	 * Validate whether the request is hit cache by custom logic.
+	 * - The trigger is evaluated after checking the cache expiration. If it returns `false` while the cache is still valid, the cached result will not be used.
+	 * @param config The request to validate.
+	 * @returns If the request is hit cache.
+	 */
+	cacheHit?: (config: InterceptRequestConfig) => boolean;
 }
 
 export type CodeRange = { from: number; to: number };
 
 export type RetryCodeRange = number | number[] | CodeRange | Array<CodeRange> | string;
 
-interface Retry {
+export interface Retry {
 	/**
 	 * Retry count.
 	 * - default `5`

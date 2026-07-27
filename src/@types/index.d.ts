@@ -1,6 +1,6 @@
 import type { AxiosRequestConfig, InternalAxiosRequestConfig } from 'axios';
 import type { Fn } from '@wang-yige/utils';
-import type { ExtraConfig } from '@/@types/config';
+import type { ExtraConfig, Single, Cache, Retry, RetryCodeRange, CodeRange, InitialConfig } from '@/@types/config';
 
 export * from './config';
 
@@ -23,4 +23,4 @@ export type RequestPromise<T = any> = Promise<T> & {
 	cancel: Fn;
 };
 
-export { ExtraConfig };
+export { ExtraConfig, Single, Cache, Retry, RetryCodeRange, CodeRange, InitialConfig };
