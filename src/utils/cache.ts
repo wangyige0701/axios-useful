@@ -43,6 +43,13 @@ export class CacheController {
 			if (isNumber(time) && time > 0 && Date.now() - timestamp > time) {
 				this.deleteCache(config);
 			} else {
+				if (
+					isObject(cacheConfig) &&
+					isFunction(cacheConfig.cacheHit) &&
+					cacheConfig.cacheHit(config) === false
+				) {
+					return;
+				}
 				throw new ResponseCache(response);
 			}
 		}
@@ -53,7 +60,7 @@ export class CacheController {
 		if (!cache) {
 			return;
 		}
-		if (isObject(cache) && isFunction(cache.validate) && !cache.validate(response)) {
+		if (isObject(cache) && isFunction(cache.validate) && cache.validate(response) === false) {
 			return;
 		}
 		if (!this.cache) {
