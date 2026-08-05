@@ -90,7 +90,7 @@ function startFallbackServer() {
 			send(response, 200, { message: 'Hello World' });
 			return;
 		}
-		if (method === 'GET' && /^\/index\/\d+$/.test(url.pathname)) {
+		if (method === 'GET' && /^\/index\/\d+(?:\.\d+)?$/.test(url.pathname)) {
 			const time = Number(url.pathname.split('/').at(-1) || 1);
 			await sleep(time * 1000);
 			send(response, 200, { message: 'Hello World' });
