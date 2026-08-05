@@ -3,6 +3,16 @@ import { axios, AxiosRequest } from '@/index';
 import { createPromise } from '@wang-yige/utils';
 
 describe('main features', () => {
+	it('exports axios static and create factory overloads', () => {
+		const baseURL = 'http://localhost:3000';
+		const API = AxiosRequest.create(baseURL, { limitInOneSecond: 0 });
+		const APIByConfig = AxiosRequest.create({ baseURL, limitInOneSecond: 0 });
+
+		expect(API.Axios).toBe(axios);
+		expect(API.getUri({ url: '/index' })).toBe(`${baseURL}/index`);
+		expect(APIByConfig.getUri({ url: '/index' })).toBe(`${baseURL}/index`);
+	});
+
 	it('request and response interceptor order', async () => {
 		const { promise: firstRequest, resolve: firstRequestResolve } = createPromise<string>();
 		const { promise: secondRequest, resolve: secondRequestResolve } = createPromise<string>();
@@ -46,28 +56,29 @@ describe('main features', () => {
 		const API = new AxiosRequest('http://localhost:3000', { limitInOneSecond: 2 });
 		const req = () => API.get('/index');
 
-		try {
-			req();
-			req();
-			req();
-		} catch (error: any) {
-			expect(error).toBeInstanceOf(Error);
-			expect(error.message).toMatch(/^The request frequency is over the limit in one second/);
-		}
+		const first = req();
+		const second = req();
+
+		expect(req).toThrow(/^The request frequency is over the limit in one second/);
+		await Promise.all([first, second]);
+	}, 10000);
+
+	it('allows frequency limit to be disabled', async () => {
+		const API = new AxiosRequest('http://localhost:3000', { limitInOneSecond: 0 });
+		const responses = await Promise.all([API.get('/index'), API.get('/index'), API.get('/index')]);
+
+		expect(responses.every(response => response.data.message === 'Hello World')).toBe(true);
 	}, 10000);
 
 	it('maximum requests', async () => {
 		const API = new AxiosRequest('http://localhost:3000', { maximumInOneTime: 2 });
-		const req = (time: number) => API.get('/index/' + time);
+		let id = 0;
+		const req = () => API.get(`/index/0.2?case=${id++}`);
 
 		const time = Date.now();
-		req(1);
-		req(2);
-		req(3);
-		req(4);
-		const res = await req(5);
+		await Promise.all([req(), req(), req(), req(), req()]);
 
-		expect(Date.now() - time).toBeGreaterThanOrEqual(9000);
-		expect(Date.now() - time).toBeLessThanOrEqual(10000);
+		expect(Date.now() - time).toBeGreaterThanOrEqual(550);
+		expect(Date.now() - time).toBeLessThan(1500);
 	}, 30000);
 });
