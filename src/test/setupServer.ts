@@ -1,7 +1,5 @@
-import { spawn, type ChildProcess } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import http, { type IncomingMessage, type ServerResponse } from 'node:http';
-import path from 'node:path';
 
 const SERVER_URL = 'http://localhost:3000';
 const retryCache = new Map<string, number>();
@@ -25,23 +23,6 @@ async function isServerReady() {
 
 function sleep(time: number) {
 	return new Promise(resolve => setTimeout(resolve, time));
-}
-
-async function waitForServer(child: ChildProcess, getErrorOutput: () => string) {
-	const startedAt = Date.now();
-
-	while (Date.now() - startedAt < 10000) {
-		if (await isServerReady()) {
-			return;
-		}
-		if (child.exitCode !== null) {
-			throw new Error(`Test server exited before it was ready.\n${getErrorOutput()}`);
-		}
-		await sleep(100);
-	}
-
-	child.kill();
-	throw new Error(`Timed out waiting for test server at ${SERVER_URL}.\n${getErrorOutput()}`);
 }
 
 function send(response: ServerResponse, status: number, body?: unknown, headers: Record<string, string> = {}) {
@@ -81,7 +62,7 @@ async function readJson(request: IncomingMessage) {
 	return JSON.parse(raw || '{}');
 }
 
-function startFallbackServer() {
+function startTestServer() {
 	const server = http.createServer(async (request, response) => {
 		const url = new URL(request.url || '/', SERVER_URL);
 		const method = request.method || 'GET';
@@ -167,33 +148,5 @@ export default async function setup() {
 		return;
 	}
 
-	let errorOutput = '';
-	const child = spawn(process.execPath, ['app.js'], {
-		cwd: path.resolve(process.cwd(), 'server'),
-		stdio: ['ignore', 'ignore', 'pipe'],
-	});
-
-	child.stderr?.on('data', chunk => {
-		errorOutput += chunk.toString();
-	});
-
-	try {
-		await waitForServer(child, () => errorOutput);
-	} catch (error) {
-		if (!/Cannot find package 'koa(?:'|-)/.test(errorOutput)) {
-			throw error;
-		}
-		if (child.exitCode === null && !child.killed) {
-			child.kill();
-		}
-		return startFallbackServer();
-	}
-
-	return async () => {
-		if (child.exitCode !== null || child.killed) {
-			return;
-		}
-		child.kill();
-		await new Promise(resolve => child.once('exit', resolve));
-	};
+	return startTestServer();
 }
