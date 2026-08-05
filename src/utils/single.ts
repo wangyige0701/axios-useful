@@ -89,7 +89,7 @@ export class SingleController {
 					}
 					reject(err);
 				});
-				_promise.finally(() => this.singleNext!.delete(_key));
+				_promise.finally(() => this.singleNext!.delete(_key)).catch(VOID_FUNCTION);
 				return promise;
 			}
 			// Prev 模式，前一个请求没有执行完则不会让下一个请求进入队列，下一个请求的 promise 会被拒绝并返回 axios CanceledError
@@ -111,7 +111,7 @@ export class SingleController {
 					promise.cancel = _promise.cancel;
 					promise.abort = _promise.abort;
 					_promise.then(resolve, reject);
-					_promise.finally(() => this.singlePrev!.delete(_key));
+					_promise.finally(() => this.singlePrev!.delete(_key)).catch(VOID_FUNCTION);
 				}
 				return promise;
 			}

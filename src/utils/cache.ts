@@ -30,7 +30,7 @@ export class CacheController {
 			// undefined or false
 			return;
 		}
-		const { time } = isBoolean(cacheConfig) ? { time: -1 } : cacheConfig;
+		const { time = -1 } = isBoolean(cacheConfig) ? { time: -1 } : cacheConfig;
 		if (!isNumber(time) || time === 0) {
 			return;
 		}
@@ -67,7 +67,7 @@ export class CacheController {
 			this.cache = new Map();
 		}
 		if (!this.hasCache(config)) {
-			const { time } = isBoolean(cache) ? { time: -1 } : cache;
+			const { time = -1 } = isBoolean(cache) ? { time: -1 } : cache;
 			if (!isNumber(time) || time === 0) {
 				return;
 			}
